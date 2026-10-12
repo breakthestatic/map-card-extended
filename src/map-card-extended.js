@@ -32,6 +32,27 @@ class MapCardExtended extends HTMLElement {
   _pendingConfig;
   /** @type {boolean} whether async inner-card creation is in flight */
   _creating = false;
+  /** @type {string | undefined} Lovelace view layout, forwarded to inner card */
+  _layout;
+
+  connectedCallback() {
+    // The native map card (Leaflet) sizes/centers itself from its container.
+    // In the sections view the grid gives the card slot a *definite* height
+    // (a `.card.fit-rows` div), but the intervening `hui-card` has no height
+    // set (height:auto). Our wrapper is an extra box between them, so a
+    // `height:100%` here resolves against hui-card's auto height and collapses
+    // - the map ends up with no height and can't center/fit.
+    //
+    // `display:contents` removes this element from the box tree entirely, so
+    // the inner hui-map-card becomes the effective child of hui-card and sizes
+    // exactly as the native card would unwrapped. We keep our DOM wiring and
+    // event interception; only our own box disappears.
+    //
+    // Note: a custom element constructor may not set attributes (the spec
+    // throws NotSupportedError), and `style` is an attribute - so this must
+    // run here, not in the constructor.
+    this.style.display = "contents";
+  }
 
   /**
    * Lovelace config entry point. Splits per-entity `tap_action` out of the
@@ -89,6 +110,26 @@ class MapCardExtended extends HTMLElement {
   }
 
   /**
+   * Lovelace sets `layout` on the card to tell it which view it is rendered in
+   * ("grid" for the sections view, "panel", etc.). The native map card uses
+   * this to size itself: in "grid" layout it ignores `aspect_ratio` and fills
+   * the fixed-height grid cell (so `grid_options.rows` works). We are the card
+   * Lovelace talks to, so we must forward `layout` to the inner card - without
+   * it the inner map falls back to aspect-ratio sizing, overflows its cell and
+   * fails to center.
+   */
+  set layout(layout) {
+    this._layout = layout;
+    if (this._inner) {
+      this._inner.layout = layout;
+    }
+  }
+
+  get layout() {
+    return this._layout;
+  }
+
+  /**
    * Create the embedded native card via HA's card helpers and wire up click
    * interception. Built-in cards (hui-map-card) load lazily, so the element
    * returned by document.createElement is not upgraded and has no setConfig
@@ -108,6 +149,11 @@ class MapCardExtended extends HTMLElement {
       if (this._hass) {
         inner.hass = this._hass;
       }
+      // Forward the view layout (set by Lovelace before the inner card exists)
+      // so the native card sizes correctly from its first render.
+      if (this._layout !== undefined) {
+        inner.layout = this._layout;
+      }
 
       // Intercept the native marker click (hass-more-info) in the capture
       // phase so we can suppress it before HA's dialog manager (listening on
@@ -116,6 +162,11 @@ class MapCardExtended extends HTMLElement {
         this.addEventListener("hass-more-info", this._onMoreInfo, true);
         this._listenerBound = true;
       }
+
+      // Let the inner card fill the host so Leaflet measures the full card
+      // slot and centers/fits correctly.
+      inner.style.display = "block";
+      inner.style.height = "100%";
 
       this._inner = inner;
       this.appendChild(inner);
@@ -222,6 +273,27 @@ class MapCardExtended extends HTMLElement {
   }
 
   /**
+   * Sections-view grid sizing. The native map card declares that it is
+   * row-sizable (so `grid_options.rows` works and the map fills a definite
+   * height). We must forward that contract, or the layout treats this wrapper
+   * as a default card that ignores `rows` and the inner map can't size/center.
+   *
+   * The layout may call this before the async inner card exists, so fall back
+   * to the native map card's known defaults until it is ready.
+   * @returns {object} grid options for the sections view
+   */
+  getGridOptions() {
+    return (
+      this._inner?.getGridOptions?.() ?? {
+        columns: "full",
+        rows: 4,
+        min_columns: 6,
+        min_rows: 2,
+      }
+    );
+  }
+
+  /**
    * Return the native map card's visual editor for the Config tab. A GUI editor
    * is required for Home Assistant to render the Config/Visibility/Layout tab
    * bar; this reuses the built-in map editor so all native options get their
@@ -242,17 +314,24 @@ class MapCardExtended extends HTMLElement {
   }
 }
 
-customElements.define("map-card-extended", MapCardExtended);
+// Guard against the module being evaluated more than once in the same page
+// (e.g. loaded both as a Lovelace resource and pulled in elsewhere, or a stale
+// cached copy alongside a fresh one). A second `define` with the same name
+// throws a DOMException, so only register when the name is still free.
+if (!customElements.get("map-card-extended")) {
+  customElements.define("map-card-extended", MapCardExtended);
 
-// Register in the custom card picker.
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "map-card-extended",
-  name: "Map Card Extended",
-  description:
-    "Home Assistant's built-in map card plus per-entity tap actions.",
-  preview: false,
-  documentationURL: "https://github.com/breakthestatic/map-card-extended",
-});
+  // Register in the custom card picker (only on first load, so we don't push a
+  // duplicate entry).
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: "map-card-extended",
+    name: "Map Card Extended",
+    description:
+      "Home Assistant's built-in map card plus per-entity tap actions.",
+    preview: false,
+    documentationURL: "https://github.com/breakthestatic/map-card-extended",
+  });
 
-console.info(`%c map-card-extended %c ${VERSION} `, "background:#555;color:#fff;border-radius:3px 0 0 3px", "background:#03a9f4;color:#fff;border-radius:0 3px 3px 0");
+  console.info(`%c map-card-extended %c ${VERSION} `, "background:#555;color:#fff;border-radius:3px 0 0 3px", "background:#03a9f4;color:#fff;border-radius:0 3px 3px 0");
+}

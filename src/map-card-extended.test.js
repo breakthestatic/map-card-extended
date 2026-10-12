@@ -11,6 +11,9 @@ class StubMapCard extends HTMLElement {
   getCardSize() {
     return 7;
   }
+  getGridOptions() {
+    return { columns: "full", rows: 4, min_columns: 6, min_rows: 2 };
+  }
 }
 
 beforeAll(async () => {
@@ -145,5 +148,27 @@ describe("map-card-extended", () => {
   it("delegates getCardSize to the inner card", async () => {
     const el = await makeCard({ type: "custom:map-card-extended", entities: [] });
     expect(el.getCardSize()).toBe(7);
+  });
+
+  it("delegates getGridOptions to the inner card so sections-view rows work", async () => {
+    const el = await makeCard({ type: "custom:map-card-extended", entities: [] });
+    expect(el.getGridOptions()).toEqual({
+      columns: "full",
+      rows: 4,
+      min_columns: 6,
+      min_rows: 2,
+    });
+  });
+
+  it("falls back to the native map grid options before the inner card exists", () => {
+    // getGridOptions may be called by the layout before async inner-card
+    // creation completes; it must still advertise row-sizable grid options.
+    const el = document.createElement("map-card-extended");
+    expect(el.getGridOptions()).toEqual({
+      columns: "full",
+      rows: 4,
+      min_columns: 6,
+      min_rows: 2,
+    });
   });
 });
