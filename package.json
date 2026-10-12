@@ -1,0 +1,37 @@
+{
+  "name": "map-card-extended",
+  "version": "0.1.0",
+  "description": "Home Assistant's built-in map card plus per-entity tap actions",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "rollup -c --bundleConfigAsCjs",
+    "watch": "rollup -c --watch --bundleConfigAsCjs",
+    "lint": "eslint src/**/*.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/breakthestatic/map-card-extended.git"
+  },
+  "author": "breakthestatic",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/breakthestatic/map-card-extended/issues"
+  },
+  "homepage": "https://github.com/breakthestatic/map-card-extended#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.29.6",
+    "@babel/preset-env": "^7.26.0",
+    "@eslint/js": "^9.4.0",
+    "@rollup/plugin-commonjs": "^25.0.8",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "babel-jest": "^29.7.0",
+    "eslint": "^9.5.0",
+    "eslint-plugin-jsdoc": "^48.2.12",
+    "globals": "^15.3.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "rollup": "^4.60.1"
+  }
+}
