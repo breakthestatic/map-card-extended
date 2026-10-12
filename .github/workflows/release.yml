@@ -1,6 +1,6 @@
 name: Releases
 
-on: 
+on:
   push:
     tags:
     - 'v*'
@@ -13,14 +13,13 @@ jobs:
       contents: write
     steps:
     - uses: actions/checkout@v4
-    - uses: cachix/install-nix-action@v27
-    - uses: cachix/cachix-action@v14
+    - uses: actions/setup-node@v4
       with:
-        name: devenv
-    - name: Install devenv.sh
-      run: nix profile install nixpkgs#devenv
-    - run: devenv shell release-github
-      name: Release on Github
+        node-version: 20
+    - name: Install dependencies
+      run: npm ci
+    - name: Build
+      run: npm run build
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "dist/map-card-extended.js"

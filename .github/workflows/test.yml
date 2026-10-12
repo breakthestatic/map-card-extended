@@ -1,6 +1,6 @@
 name: Test
 
-on: 
+on:
   push:
     branches:
       - main
@@ -15,11 +15,14 @@ jobs:
       contents: write
     steps:
     - uses: actions/checkout@v4
-    - uses: cachix/install-nix-action@v27
-    - uses: cachix/cachix-action@v14
+    - uses: actions/setup-node@v4
       with:
-        name: devenv
-    - name: Install devenv.sh
-      run: nix profile install nixpkgs#devenv
-    - run: devenv test
-      name: Run tests
+        node-version: 20
+    - name: Install dependencies
+      run: npm ci
+    - name: Build
+      run: npm run build
+    - name: Lint
+      run: npm run lint
+    - name: Test
+      run: npm test
