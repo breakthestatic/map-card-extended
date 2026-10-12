@@ -7,7 +7,8 @@
     "build": "rollup -c --bundleConfigAsCjs",
     "watch": "rollup -c --watch --bundleConfigAsCjs",
     "lint": "eslint src/**/*.js",
-    "test": "jest"
+    "test": "jest",
+    "copy-to-ha": "npm run build && sudo cp dist/map-card-extended.js /var/lib/hass/www"
   },
   "repository": {
     "type": "git",
